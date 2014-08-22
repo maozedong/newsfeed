@@ -89,13 +89,12 @@ class App():
 
 
 if __name__ == '__main__':
-    timelines = ['109516988', '1454734730', '1178067301']
     conf = ConfigReader('config.json')
-    l = StdOutListener(timelines)
+    l = StdOutListener(conf.timelines)
     auth = OAuthHandler(conf.consumer_key, conf.consumer_secret)
     auth.set_access_token(conf.access_token, conf.access_token_secret)
     stream = Stream(auth, l)
-    stream.filter(follow=timelines)
+    stream.filter(follow=conf.timelines)
     # app = App()
     # daemon_runner = runner.DaemonRunner(app)
     # daemon_runner.do_action()
