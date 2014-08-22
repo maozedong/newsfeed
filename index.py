@@ -1,86 +1,53 @@
-#!/usr/bin/python
-import time
+#!/usr/bin/env python
 from daemon import runner
-from datetime import datetime, timedelta
+from tweepy.streaming import StreamListener
+from tweepy import OAuthHandler
+from tweepy import Stream
+from tweepy import Status
+from json import loads
 from subprocess import call
-from operator import attrgetter
-import feedparser
+import os.path
+import urllib
+
+# Go to http://dev.twitter.com and create an app.
+# The consumer key and secret will be generated for you after
+consumer_key = "cFec8DIlKzEMJYEh0Q1HLDn7s"
+consumer_secret = "wZ0yU2pV282kBdJ32PjjBxZgkIQp1oFT7GW0JZMgejt4SlocXu"
+# After the step above, you will be redirected to your app's page.
+# Create an access token under the the "Your access token" section
+access_token = "2423666970-MLQQUFsaKm5oi83KSzoCOAKP1CWwcXX9yYjvERv"
+access_token_secret = "JWk7aSuKOg6uefQvMH2X88ZUS9bmumi5yWwGca4fcD23z"
 
 
-class Bunch:
-    def __init__(self, **kwds):
-        self.__dict__.update(kwds)
+class StdOutListener(StreamListener):
+    """ A listener handles tweets are the received from the stream.
+    This is a basic listener that just prints received tweets to stdout.
+    """
 
+    def __init__(self, timelines):
+        self.timelines = timelines
+        super(StdOutListener, self).__init__()
 
-class Feed:
-    t_mask = 'false'
-    url = 'no url'
+    def on_data(self, data):
+        tweet = loads(data)
+        print tweet['user']['id_str'] + ' ' + tweet['user']['name']
+        if any(tweet['user']['id_str'] in s for s in self.timelines):
+            icon = self.get_icon(tweet['user']['profile_image_url'], tweet['user']['id_str'])
+            call(["notify-send", tweet['user']['name'], tweet['text'], '-i',
+                  icon])
+        return True
 
-    def __init__(self):
-        self.feed = feedparser.parse(self.url)
+    def on_error(self, status):
+        print status
 
-
-class NewsLigaNetFeed(Feed, object):
-    t_mask = '%a, %d %b %Y %H:%M:%S +0300'
-    url = "http://news.liga.net/all/rss.xml"
-    icon = '/var/www/newsfeed/icons/NewsLigaNet.png'
-
-    def getNews(self, fromDate):
-        news = []
-        # self.feed.entries.append(Bunch(published=datetime.now().strftime(t_mask), title='Test', summary='Test body'))
-        for entrie in self.feed.entries:
-            date = datetime.strptime(entrie.published, self.t_mask)
-            if date > fromDate:
-                news.append(FeedItem(date, entrie.title, entrie.summary, self.icon))
-        return news
-
-
-class LbUaFeed(Feed, object):
-    t_mask = '%a, %d %b %Y %H:%M:%S +0300'
-    url = "http://lb.ua/export/rss_news.xml"
-    icon = '/var/www/music_network/newsfeed/icons/LbUa.jpg'
-
-    def getNews(self, fromDate):
-        news = []
-        dates = []
-        for entrie in self.feed.entries:
-            date = datetime.strptime(entrie.published, self.t_mask)
-            dates.append(entrie.published)
-            if date > fromDate:
-                news.append(FeedItem(date, entrie.title, entrie.summary, self.icon))
-        return news
-
-
-class FeedItem(object):
-    def __init__(self, date, title, body, icon='/var/www/newsfeed/icons/breaking_news.jpg'):
-        self.date = date
-        self.title = title
-        self.body = body
-        self.icon = icon
-
-
-
-def mainLoop():
-    url = 'http://news.liga.net/all/rss.xml'
-    iteration = 0
-    t_mask = '%a, %d %b %Y %H:%M:%S +0300'
-    last = datetime.now() - timedelta(hours=1)
-    feeds = [NewsLigaNetFeed, LbUaFeed]
-    while 1:
-        news = []
-        for feed in feeds:
-            feed_obj = feed()
-            part = feed_obj.getNews(last)
-            news = news + part
-        news = sorted(news, key=attrgetter('date'))
-        for item in news:
-            call(["notify-send", item.title, item.body, '-i',
-                  item.icon])
-        last = datetime.now()
-        iteration += 1
-        print datetime.now().strftime("%H:%M:%S") + ' ' + unicode(iteration) + ' iterations complete. ' + unicode(
-            len(news)) + ' new articles'
-        time.sleep(60)
+    @staticmethod
+    def get_icon(url, name):
+        ext = '.' + url.split('.')[-1]
+        folder = os.path.dirname(os.path.abspath(__file__)) + '/icons/'
+        path = folder + name + ext
+        if os.path.isfile(path) is not True:
+            urllib.urlretrieve(url, path)
+        return path
 
 
 class App():
@@ -91,10 +58,22 @@ class App():
         self.pidfile_path = '/tmp/foo.pid'
         self.pidfile_timeout = 5
 
-    def run(self):
-        mainLoop()
+    @staticmethod
+    def run():
+        l = StdOutListener()
+        auth = OAuthHandler(consumer_key, consumer_secret)
+        auth.set_access_token(access_token, access_token_secret)
+        stream = Stream(auth, l)
+        stream.filter(follow=['1454734730'])
 
 
-app = App()
-daemon_runner = runner.DaemonRunner(app)
-daemon_runner.do_action()
+if __name__ == '__main__':
+    timelines = ['109516988', '1454734730', '1178067301']
+    l = StdOutListener(timelines)
+    auth = OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_token, access_token_secret)
+    stream = Stream(auth, l)
+    stream.filter(follow=timelines)
+    # app = App()
+    # daemon_runner = runner.DaemonRunner(app)
+    # daemon_runner.do_action()
