@@ -1,7 +1,7 @@
 {
-    "consumer_key": "",
-    "consumer_secret": "",
-    "access_token": "",
-    "access_token_secret": "",
+    "consumer_key": "cFec8DIlKzEMJYEh0Q1HLDn7s",
+    "consumer_secret": "wZ0yU2pV282kBdJ32PjjBxZgkIQp1oFT7GW0JZMgejt4SlocXu",
+    "access_token": "2423666970-MLQQUFsaKm5oi83KSzoCOAKP1CWwcXX9yYjvERv",
+    "access_token_secret": "JWk7aSuKOg6uefQvMH2X88ZUS9bmumi5yWwGca4fcD23z",
     "timelines": ["109516988", "1454734730", "1178067301"]
 }

@@ -3,7 +3,6 @@ from daemon import runner
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler
 from tweepy import Stream
-from tweepy import Status
 import json
 from json import loads
 from subprocess import call
@@ -51,11 +50,12 @@ class StdOutListener(StreamListener):
 
     def on_data(self, data):
         tweet = loads(data)
-        print tweet['user']['id_str'] + ' ' + tweet['user']['name']
-        if tweet['user']['id_str'] in self.timelines:
-            icon = self.get_icon(tweet['user']['profile_image_url'], tweet['user']['id_str'])
-            call(["notify-send", tweet['user']['name'], tweet['text'], '-i',
-                  icon])
+        if 'user' in tweet:
+            print tweet['user']['id_str'] + ' ' + tweet['user']['name']
+            if tweet['user']['id_str'] in self.timelines:
+                icon = self.get_icon(tweet['user']['profile_image_url'], tweet['user']['id_str'])
+                call(["notify-send", tweet['user']['name'], tweet['text'], '-i',
+                      icon])
         return True
 
     def on_error(self, status):
